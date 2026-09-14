@@ -1,0 +1,16 @@
+{
+    "name": "weblyarts/connect-sdk-core",
+    "description": "Core package of WeblyConnect, the official WeblySuite integration SDK (auth, HTTP, agent backend client).",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "WeblyConnect\\Sdk\\": "php/connect-sdk-core/src/"
+        }
+    }
+}
