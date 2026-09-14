@@ -1,16 +1,15 @@
 {
-    "name": "weblyarts/connect-sdk-core",
-    "description": "Framework-agnostic auth, HTTP and AgentHub client for WeblyArts Connect integrations.",
+    "name": "weblyarts/connect-sdk-mcp",
+    "description": "Turns any PHP backend into an MCP tool server consumable by WeblyAgentHub federation (JSON-RPC 2.0 over HTTP, bearer token).",
     "type": "library",
     "license": "MIT",
     "require": {
         "php": ">=8.1",
-        "ext-curl": "*",
         "ext-json": "*"
     },
     "autoload": {
         "psr-4": {
-            "WeblyConnect\\Sdk\\": "src/"
+            "WeblyConnect\\Sdk\\Mcp\\": "src/"
         }
     },
     "require-dev": {
@@ -18,7 +17,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "WeblyConnect\\Sdk\\Tests\\": "tests/"
+            "WeblyConnect\\Sdk\\Mcp\\Tests\\": "tests/"
         }
     },
     "scripts": {
