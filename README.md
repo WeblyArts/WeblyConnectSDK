@@ -1,7 +1,11 @@
 # WeblyConnectSDK
 
-Single source of truth for integrating any PHP or JavaScript project with the WeblyArts
-AgentHub platform (AI chat, routed models, tool calling, MCP tool exposure).
+Official SDK for **WeblyConnect**, the integration layer of **WeblySuite**.
+
+Single source of truth for connecting any PHP or JavaScript project to the WeblySuite
+ecosystem: tenant authentication (Connect flow), embeddable AI chat, backend proxy
+streaming, and MCP tool exposure so your own app becomes a tool source for WeblySuite
+agents.
 
 This SDK is consumed both by the official WordPress plugins (`WeblySuitePress`,
 `WeblyAgentPress`, `WeblyMCPress`) and by handmade PHP projects that want the same
@@ -11,8 +15,8 @@ capabilities without WordPress.
 
 | Package | Path | Purpose |
 |---|---|---|
-| `weblyarts/connect-sdk-core` | `php/connect-sdk-core` | Framework-agnostic auth, HTTP (incl. SSE streaming), AgentHub client and chat proxy orchestration. No WordPress functions. |
-| `weblyarts/connect-sdk-mcp` | `php/connect-sdk-mcp` | Turns a PHP backend into an MCP tool server consumable by AgentHub (federation-compatible). Depends on `connect-sdk-core`. |
+| `weblyarts/connect-sdk-core` | `php/connect-sdk-core` | Framework-agnostic Connect auth, HTTP (incl. SSE streaming), WeblySuite backend client and chat proxy orchestration. No WordPress functions. |
+| `weblyarts/connect-sdk-mcp` | `php/connect-sdk-mcp` | Turns a PHP backend into an MCP tool server consumable by WeblySuite agents (federation-compatible). Standalone package (no dependency on core). |
 
 ## Design rules
 
@@ -28,7 +32,7 @@ capabilities without WordPress.
   package: `WeblySuitePress` bundles `connect-sdk-core`, `WeblyMCPress` bundles
   `connect-sdk-mcp` (which requires `connect-sdk-core` too, prefixed under its own vendor
   tree). `WeblyAgentPress` bundles no PHP vendor code; it ships the JS widget only and
-  talks to AgentHub through the REST proxy exposed by `WeblySuitePress`.
+  talks to WeblySuite through the REST proxy exposed by `WeblySuitePress`.
 - **No back-compat layers.** One code path per concern, updated in place.
 
 See `php/connect-sdk-core/README.md` for the core package contract.

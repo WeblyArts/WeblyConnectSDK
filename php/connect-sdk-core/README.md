@@ -1,8 +1,10 @@
 # weblyarts/connect-sdk-core
 
-Framework-agnostic PHP SDK for integrating with WeblyAgentHub: token handling, a single
-cURL-based HTTP transport (including SSE streaming), the AgentHub REST client, and the
-chat streaming proxy decoder.
+Core package of **WeblyConnect**, the official WeblySuite integration SDK.
+
+Framework-agnostic PHP building blocks: Connect tenant token handling, a single cURL-based
+HTTP transport (including SSE streaming), the WeblySuite backend REST client, and the chat
+streaming proxy decoder.
 
 No WordPress function is called anywhere in `src/`. Host applications (WordPress
 plugins, handmade PHP backends) provide the pieces that are inherently
@@ -16,8 +18,8 @@ platform-specific by implementing `TokenStoreInterface` and wiring the other cla
 | `Auth\JwtClaims` | Reads unverified claims from a `wbly_live_*` token (billing scope, subject, expiry). Never a substitute for server-side signature verification. |
 | `Auth\TenantAuth` | Validates a token's format/scope before persisting it, and exposes the current bearer token to callers. |
 | `Http\HttpClientInterface` / `CurlHttpClient` | The only HTTP transport in the SDK. Used for both regular JSON calls and SSE streaming, so there is one code path instead of `wp_remote_*` plus a separate streaming hack. |
-| `AgentHub\AgentHubClient` | Non-streaming REST calls: agents CRUD, tool catalog, model catalog, non-streaming chat. |
-| `AgentHub\AgentHubChatStreamer` | Streams `POST /agents/{id}/chat` and decodes each Anthropic-style SSE event, forwarding it through a callback. Retries transient upstream failures before any bytes are seen; never retries after the first byte to avoid duplicate output. |
+| `AgentHub\AgentHubClient` | Non-streaming REST calls to the WeblySuite agent backend: agents CRUD, tool catalog, model catalog, non-streaming chat. |
+| `AgentHub\AgentHubChatStreamer` | Streams chat inference from the WeblySuite agent backend and decodes each SSE event, forwarding it through a callback. Retries transient upstream failures before any bytes are seen; never retries after the first byte to avoid duplicate output. |
 
 ## Usage sketch
 

@@ -1,16 +1,18 @@
 # weblyarts/connect-sdk-mcp
 
-Turns any PHP backend into an MCP tool server that WeblyAgentHub's federation layer
-can call, so tools you write in your own PHP project become usable from an AgentHub
-chat agent alongside its native and WordPress tools.
+MCP package of **WeblyConnect**, the official WeblySuite integration SDK.
+
+Turns any PHP backend into an MCP tool server that WeblySuite agents can call, so tools
+you write in your own project become usable from WeblyConnect chat alongside native and
+WordPress tools.
 
 ## Protocol
 
-AgentHub's federation client (streamable HTTP transport) speaks plain JSON-RPC 2.0
-over a single `POST` endpoint, with a static bearer token and no `initialize`
-handshake. This package implements exactly that surface: `tools/list` and
-`tools/call`. See `WeblyConnectSDK/docs/BACKEND_CONTRACT.md` for the field-level wire
-contract and how to register the endpoint on the AgentHub side.
+WeblySuite's MCP federation (streamable HTTP transport) speaks plain JSON-RPC 2.0 over a
+single `POST` endpoint, with a static bearer token and no `initialize` handshake. This
+package implements exactly that surface: `tools/list` and `tools/call`. See
+`docs/BACKEND_CONTRACT.md` for the field-level wire contract and how to register the
+endpoint in your tenant config.
 
 ## Building blocks
 
@@ -58,5 +60,5 @@ header('Content-Type: application/json');
 echo $response->jsonBody;
 ```
 
-Then configure the same URL and shared secret as a federated server in AgentHub's
-tenant config, `transport: "streamable_http"`.
+Then configure the same URL and shared secret as a federated server in your WeblySuite
+tenant MCP federation config, `transport: "streamable_http"`.

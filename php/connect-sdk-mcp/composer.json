@@ -1,6 +1,6 @@
 {
     "name": "weblyarts/connect-sdk-mcp",
-    "description": "Turns any PHP backend into an MCP tool server consumable by WeblyAgentHub federation (JSON-RPC 2.0 over HTTP, bearer token).",
+    "description": "Turns any PHP backend into an MCP tool server consumable by WeblySuite agents via federation (JSON-RPC 2.0 over HTTP, bearer token).",
     "type": "library",
     "license": "MIT",
     "require": {

@@ -1,8 +1,8 @@
 # MCP federation backend contract
 
-This is the exact wire contract WeblyAgentHub speaks when it calls a federated MCP
-server over the `streamable_http` transport. `weblyarts/connect-sdk-mcp` implements
-this contract for you (see its README); this document exists so you can also
+This is the exact wire contract the WeblySuite platform uses when it calls a federated
+MCP server over the `streamable_http` transport. `weblyarts/connect-sdk-mcp`
+implements this contract for you (see its README); this document exists so you can also
 implement it in a different language, or debug an integration by hand with `curl`.
 
 ## Transport
@@ -12,10 +12,10 @@ implement it in a different language, or debug an integration by hand with `curl
   `https://yourapp.example.com/mcp.php`).
 - Every call is `POST` with a JSON-RPC 2.0 body and `Content-Type: application/json`.
 - Auth: static `Authorization: Bearer <token>` header. The token is a secret you
-  generate yourself and configure both on your server and in AgentHub's federation
-  config for your tenant. There is no OAuth or key exchange: treat it like any other
+  generate yourself and configure both on your server and in your WeblySuite tenant
+  MCP federation config. There is no OAuth or key exchange: treat it like any other
   API secret (rotate it, never log it, never send it to the browser).
-- No `initialize` handshake. AgentHub calls `tools/list` and `tools/call` directly.
+- No `initialize` handshake. WeblySuite calls `tools/list` and `tools/call` directly.
 
 ## `tools/list`
 
@@ -77,11 +77,10 @@ Response (tool-level failure, still HTTP 200): set `"isError": true` and put a
 human-readable explanation in the text content, instead of returning an HTTP error
 status. Reserve HTTP-level errors for auth failures or malformed requests.
 
-## Registering your server with AgentHub
+## Registering your server with WeblySuite
 
-Add an entry to your tenant's federation config (via WeblySuite's admin UI, or
-directly through the AgentHub/WeblyRAG API you already use for other tenant
-configuration):
+Add an entry to your tenant's MCP federation config (via the WeblySuite console, or
+through the tenant configuration API you already use for other WeblySuite settings):
 
 ```json
 {
@@ -97,13 +96,13 @@ configuration):
 }
 ```
 
-Your tools then show up in chat prefixed as `ext_myapp__lookup_order`, alongside
-AgentHub's native tools and any connected WordPress site's tools.
+Your tools then show up in WeblyConnect chat prefixed as `ext_myapp__lookup_order`,
+alongside native WeblySuite tools and any connected WordPress site's tools.
 
 ## Limits
 
 - Aliases: lowercase letters, digits and underscores, 1-32 characters.
-- Up to 10 federated servers per tenant, 200 tools per server (AgentHub-side limits;
+- Up to 10 federated servers per tenant, 200 tools per server (platform-side limits;
   design your catalog accordingly).
-- `tools/list` results are cached for 60 seconds on the AgentHub side, so schema
+- `tools/list` results are cached for 60 seconds on the platform side, so schema
   changes on your end appear with a short delay.

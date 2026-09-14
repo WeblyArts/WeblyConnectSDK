@@ -6,9 +6,8 @@ namespace WeblyConnect\Sdk\Mcp;
 
 /**
  * Result of a `tools/call` invocation, in MCP wire shape: a list of content blocks
- * plus an error flag. Mirrors the shape AgentHub's federation proxy already expects
- * from any streamable-HTTP MCP server (see `_error_result` / `_proxy_tool_call_sse`
- * on the Hub side).
+ * plus an error flag. Mirrors the shape WeblySuite's MCP federation proxy already
+ * expects from any streamable-HTTP MCP server.
  */
 final class ToolCallResult
 {

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace WeblyConnect\Sdk\Mcp;
 
 /**
- * Validates the `Authorization: Bearer <token>` header AgentHub sends on every
+ * Validates the `Authorization: Bearer <token>` header WeblySuite sends on every
  * federated `tools/list` / `tools/call` request, against the static secret the host
  * configured for this MCP server (the same value entered as `auth_header` in the
- * tenant's federation config on the AgentHub side).
+ * tenant's MCP federation config).
  */
 final class BearerTokenAuthenticator
 {

@@ -1,6 +1,6 @@
 {
     "name": "weblyarts/connect-sdk-core",
-    "description": "Framework-agnostic auth, HTTP and AgentHub client for WeblyArts Connect integrations.",
+    "description": "Framework-agnostic auth, HTTP and WeblySuite backend client for WeblyConnect integrations.",
     "type": "library",
     "license": "MIT",
     "require": {

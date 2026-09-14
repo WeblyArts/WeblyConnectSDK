@@ -7,11 +7,11 @@ namespace WeblyConnect\Sdk\Mcp;
 /**
  * Dispatches decoded JSON-RPC 2.0 requests to a {@see ToolRegistry}.
  *
- * Only the two methods AgentHub's federation client actually calls are supported:
- * `tools/list` and `tools/call`. There is no `initialize` handshake in AgentHub's
- * streamable-HTTP federation contract, so this dispatcher does not implement one
- * either; adding unused protocol surface here would be speculative complexity with
- * no current caller.
+ * Only the two methods WeblySuite's MCP federation client actually calls are
+ * supported: `tools/list` and `tools/call`. There is no `initialize` handshake in
+ * the streamable-HTTP federation contract, so this dispatcher does not implement
+ * one either; adding unused protocol surface here would be speculative complexity
+ * with no current caller.
  */
 final class JsonRpcDispatcher
 {
