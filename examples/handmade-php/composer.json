@@ -1,0 +1,25 @@
+{
+    "name": "weblyarts/connect-sdk-handmade-php-example",
+    "description": "Runnable example: WeblyConnect SDK in a plain PHP project (no WordPress).",
+    "type": "project",
+    "license": "MIT",
+    "private": true,
+    "require": {
+        "php": ">=8.1",
+        "weblyarts/connect-sdk-core": "dev-main",
+        "weblyarts/connect-sdk-mcp": "dev-main"
+    },
+    "repositories": [
+        { "type": "path", "url": "../../php/connect-sdk-core" },
+        { "type": "path", "url": "../../php/connect-sdk-mcp" }
+    ],
+    "autoload": {
+        "psr-4": {
+            "WeblyConnect\\Example\\": "src/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "preferred-install": "dist"
+    }
+}
