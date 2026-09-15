@@ -1,0 +1,64 @@
+name: Widget release check
+
+# jsDelivr has no build/CI of its own: it serves js/ straight from this repo at the
+# pushed tag (see docs/WIDGET.md). This workflow only validates the files being
+# tagged and confirms jsDelivr actually serves them, it does not publish anything.
+#
+# Tags can only be pushed by accounts with write access to this repository, so this
+# cannot be triggered by an external contributor's fork or pull request.
+
+on:
+  push:
+    tags:
+      - 'widget-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+
+      - name: Syntax-check widget JS
+        run: |
+          set -euo pipefail
+          for f in js/src/*.js js/vendor/*.js; do
+            echo "node --check $f"
+            node --check "$f"
+          done
+
+      - name: Required files present
+        run: |
+          set -euo pipefail
+          for f in js/css/widget.css js/vendor/fetch-event-source.js js/src/stream-kit.js js/src/widget.js; do
+            test -s "$f" || { echo "missing or empty: $f" >&2; exit 1; }
+          done
+
+      - name: Smoke-test jsDelivr for this tag
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          BASE="https://cdn.jsdelivr.net/gh/${GITHUB_REPOSITORY}@${TAG}"
+          for path in js/css/widget.css js/vendor/fetch-event-source.js js/src/stream-kit.js js/src/widget.js; do
+            url="${BASE}/${path}"
+            echo "Checking ${url}"
+            for attempt in 1 2 3 4 5 6; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$url")
+              if [ "$code" = "200" ]; then
+                echo "OK ($code)"
+                break
+              fi
+              echo "Got $code, retrying in 20s ($attempt/6)..."
+              sleep 20
+              if [ "$attempt" = "6" ]; then
+                echo "jsDelivr never returned 200 for ${url}" >&2
+                exit 1
+              fi
+            done
+          done

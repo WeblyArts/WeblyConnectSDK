@@ -23,28 +23,56 @@ it in an env var or secret manager.
 
 ## 2. Install
 
-This SDK is not on Packagist yet; install it straight from GitHub:
+This SDK is **not on Packagist**. A bare `composer require weblyarts/connect-sdk-core`
+will fail until the packages are published. Install from GitHub instead.
 
-```bash
-composer require weblyarts/connect-sdk-core:dev-main
-```
+### Chat (`connect-sdk-core`)
 
-If Composer cannot resolve the package, add the repository explicitly in your
-`composer.json`:
+Add this to your project's `composer.json`:
 
 ```json
 {
     "require": {
+        "php": ">=8.1",
         "weblyarts/connect-sdk-core": "dev-main"
     },
     "repositories": [
         { "type": "vcs", "url": "https://github.com/WeblyArts/WeblyConnectSDK" }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
+```
+
+Then run `composer update weblyarts/connect-sdk-core`. This is the only package you
+need for chat/streaming; skip the rest of this section.
+
+### Exposing your own tools (`connect-sdk-mcp`, optional)
+
+`connect-sdk-mcp` lives in the same repository but is **not** independently
+installable as `dev-main` from that same `repositories` block: Composer resolves a
+`vcs` repository to exactly one package identity (whatever `composer.json` declares
+at the repository root, i.e. `weblyarts/connect-sdk-core`), so requiring
+`weblyarts/connect-sdk-mcp` from that URL fails with "could not be found in any
+version". If you need `connect-sdk-mcp`, clone this repository yourself and point a
+local `path` repository at it:
+
+```json
+{
+    "require": {
+        "php": ">=8.1",
+        "weblyarts/connect-sdk-core": "dev-main",
+        "weblyarts/connect-sdk-mcp": "dev-main"
+    },
+    "repositories": [
+        { "type": "vcs", "url": "https://github.com/WeblyArts/WeblyConnectSDK" },
+        { "type": "path", "url": "/path/to/your/clone/WeblyConnectSDK/php/connect-sdk-mcp" }
     ]
 }
 ```
 
-Add `weblyarts/connect-sdk-mcp:dev-main` too if you also want to expose your own
-tools (step 5).
+When developing inside a clone of this monorepo, use the local `path` repositories
+in `examples/handmade-php/composer.json` for both packages instead.
 
 ## 3. Store the token
 
@@ -95,43 +123,42 @@ $reply = $client->chat('YOUR_HUB_AGENT_ID', 'What is on the roadmap this week?')
 echo $reply['answer'], "\n";
 ```
 
-## 5. Stream a chat reply (SSE)
+## 5. Site bootstrap (`SiteConnect`)
 
-Streaming needs a real HTTP entry point (`wp_remote_*`-style buffered clients cannot
-do this). From a plain PHP script served by any web server:
+For a handmade site, declare the integration once in PHP instead of scattering env
+vars across endpoints:
 
 ```php
 <?php
+// config/site-connect.php
 
-require __DIR__ . '/vendor/autoload.php';
+use WeblyConnect\Sdk\Auth\StaticTokenStore;
+use WeblyConnect\Sdk\Site\ConnectWidgetUi;
+use WeblyConnect\Sdk\Site\SiteConnect;
 
-use WeblyConnect\Sdk\Auth\TenantAuth;
-use WeblyConnect\Sdk\Http\CurlHttpClient;
-use WeblyConnect\Sdk\AgentHub\AgentHubChatStreamer;
-
-header('Content-Type: text/event-stream');
-header('Cache-Control: no-cache');
-header('X-Accel-Buffering: no');
-while (ob_get_level() > 0) {
-    ob_end_flush();
-}
-
-$auth = new TenantAuth(new EnvTokenStore());
-$streamer = new AgentHubChatStreamer(new CurlHttpClient(), $auth, 'https://agenthub.weblyarts.com');
-
-$streamer->stream(
+return new SiteConnect(
+    tokenStore: new StaticTokenStore('wbly_live_…'),
     agentId: 'YOUR_HUB_AGENT_ID',
-    message: $_GET['message'] ?? 'Hello!',
-    sessionId: $_GET['session_id'] ?? '',
-    extra: [],
-    onEvent: function (string $event, array $payload) {
-        echo 'data: ' . json_encode(['event' => $event, 'payload' => $payload]) . "\n\n";
-        @flush();
-    },
+    widget: new ConnectWidgetUi(streamPath: '/stream.php', botTitle: 'Support'),
 );
 ```
 
-Point your frontend `EventSource` at this script.
+Streaming endpoint:
+
+```php
+<?php
+require __DIR__ . '/vendor/autoload.php';
+$connect = require __DIR__ . '/config/site-connect.php';
+$connect->handleStreamRequest();
+```
+
+Widget init (browser-safe, no agent id in JS):
+
+```php
+$widgetConfig = $connect->widgetBrowserConfig();
+```
+
+See `docs/WIDGET.md` for the full embed guide.
 
 ## 6. Expose your own tools over MCP (optional)
 
@@ -187,7 +214,8 @@ WordPress) lives in [`examples/handmade-php`](examples/handmade-php). Run it wit
 ```bash
 cd examples/handmade-php
 composer install
-WEBLYCONNECT_TOKEN=wbly_live_... HUB_AGENT_ID=your-agent php -S localhost:8080
+# Edit config/site-connect.php
+php -S localhost:8080
 ```
 
 Then open `http://localhost:8080/chat.php` (JSON reply) or

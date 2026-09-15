@@ -12,17 +12,21 @@ cd examples/handmade-php
 composer install
 ```
 
+## Configure
+
+Edit `config/site-connect.php`: Connect token, Hub `agentId`, widget UI, and Hub
+base URL. That file is the single init for chat and streaming on this site. RAG
+dossier binding, if used, is set on the Hub agent itself, not here.
+
 ## Run
 
 ```bash
-WEBLYCONNECT_TOKEN=wbly_live_your_token \
-HUB_AGENT_ID=your-hub-agent-id \
-MCP_SHARED_SECRET=any-secret-you-invent \
-php -S localhost:8080
+php -S localhost:8080 router.php
 ```
 
-Optional: `AGENTHUB_BASE_URL` (defaults to `https://agenthub.weblyarts.com`; point it
-at a dev/staging Hub if you have one).
+`router.php` serves `/js/*` from the monorepo `js/` folder for `widget.php`
+(local dev only). For MCP demo only, set `MCP_SHARED_SECRET` when calling
+`mcp-server.php` (see below).
 
 ## Try it
 
@@ -30,6 +34,7 @@ at a dev/staging Hub if you have one).
 |---|---|
 | `GET /chat.php?message=hello` | Non-streaming chat call, prints the JSON reply. |
 | `GET /stream.php?message=hello` | Same call over SSE. Watch with `curl -N` or an `EventSource` in the browser. |
+| `GET /widget.php` | Embeddable chat widget. Browser talks only to `stream.php`; config stays in `config/site-connect.php`. |
 | `POST /mcp-server.php` with `Authorization: Bearer <MCP_SHARED_SECRET>` and a JSON-RPC body | Serves `tools/list` / `tools/call` for the demo `lookup_order` tool. |
 
 Example MCP call:
@@ -41,6 +46,7 @@ curl -s http://localhost:8080/mcp-server.php \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"lookup_order","arguments":{"order_id":"A-123"}}}'
 ```
 
-`chat.php` and `stream.php` need a real `WEBLYCONNECT_TOKEN` and `HUB_AGENT_ID`
-against a live tenant to return a real answer; `mcp-server.php` runs fully offline
-since it only serves demo data from `src/DemoOrders.php`.
+`chat.php`, `stream.php`, and `widget.php` need a real token and agent id in
+`config/site-connect.php` against a live tenant to return a real answer.
+`mcp-server.php` runs fully offline since it only serves demo data from
+`src/DemoOrders.php`.

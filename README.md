@@ -36,3 +36,10 @@ capabilities without WordPress.
 - **No back-compat layers.** One code path per concern, updated in place.
 
 See `php/connect-sdk-core/README.md` for the core package contract.
+
+## Chat widget (handmade sites)
+
+Browser bundle in `js/src/`, distributed via jsDelivr from a `widget-vX.Y.Z` git
+tag (no build step, no AWS infra), independent of the `connect-sdk-core` Composer
+package. Embed guide: `docs/WIDGET.md`. The widget never receives Hub `agent_id` or
+Connect token; PHP (`Site\SiteConnect`) proxies streaming via `stream.php`.

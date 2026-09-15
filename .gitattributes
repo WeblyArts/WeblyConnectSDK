@@ -1,0 +1,21 @@
+# Composer VCS/dist installs of weblyarts/connect-sdk-core check out (or archive)
+# this whole repository into a consumer's vendor/. Strip everything that is not the
+# connect-sdk-core PHP package itself, so WordPress plugins that depend on it (via
+# Composer) do not bundle the widget JS, docs, examples, the sibling connect-sdk-mcp
+# package, or dev-only test files into their own wordpress.org release zip.
+# Verified empirically: without this file, `composer require weblyarts/connect-sdk-core`
+# installs docs/, examples/, php/connect-sdk-mcp/, and tests/ alongside the real
+# runtime code.
+
+/js export-ignore
+/docs export-ignore
+/examples export-ignore
+/php/connect-sdk-mcp export-ignore
+/php/connect-sdk-core/tests export-ignore
+/php/connect-sdk-core/phpunit.xml.dist export-ignore
+/.github export-ignore
+/.vscode export-ignore
+/README.md export-ignore
+/QUICKSTART.md export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore

@@ -20,6 +20,41 @@ platform-specific by implementing `TokenStoreInterface` and wiring the other cla
 | `Http\HttpClientInterface` / `CurlHttpClient` | The only HTTP transport in the SDK. Used for both regular JSON calls and SSE streaming, so there is one code path instead of `wp_remote_*` plus a separate streaming hack. |
 | `AgentHub\AgentHubClient` | Non-streaming REST calls to the WeblySuite agent backend: agents CRUD, tool catalog, model catalog, non-streaming chat. |
 | `AgentHub\AgentHubChatStreamer` | Streams chat inference from the WeblySuite agent backend and decodes each SSE event, forwarding it through a callback. Retries transient upstream failures before any bytes are seen; never retries after the first byte to avoid duplicate output. |
+| `Auth\StaticTokenStore` | Fixed-token `TokenStoreInterface` for site bootstrap config (no env lookup in endpoints). |
+| `Site\SiteConnect` | Single init object for a handmade site: agent id, dossier id, token, widget UI, stream handler. |
+| `Site\ConnectWidgetUi` | Browser-safe widget appearance (stream path, title, colors, i18n). |
+
+## Handmade site bootstrap
+
+Declare the integration once in PHP (for example `config/site-connect.php`). Endpoints
+only require that file:
+
+```php
+use WeblyConnect\Sdk\Auth\StaticTokenStore;
+use WeblyConnect\Sdk\Site\ConnectWidgetUi;
+use WeblyConnect\Sdk\Site\SiteConnect;
+
+return new SiteConnect(
+    tokenStore: new StaticTokenStore('wbly_live_…'),
+    agentId: 'your-hub-agent-uuid',
+    widget: new ConnectWidgetUi(streamPath: '/stream.php', botTitle: 'Support'),
+);
+
+// RAG dossier binding (if any) is set once on the Hub agent itself via
+// `rag_config.agent_ids`, not per SiteConnect instance. See docs/hub-rag-stack.md
+// in the WeblySuite public docs.
+```
+
+```php
+// stream.php
+$connect = require __DIR__ . '/config/site-connect.php';
+$connect->handleStreamRequest();
+```
+
+```php
+// layout snippet (widget init, no secrets in JS)
+$widgetConfig = $connect->widgetBrowserConfig();
+```
 
 ## Usage sketch
 

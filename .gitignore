@@ -1,8 +1,11 @@
-/**/vendor/
+/php/connect-sdk-core/vendor/
+/php/connect-sdk-mcp/vendor/
+/examples/handmade-php/vendor/
 /**/composer.lock
 /**/node_modules/
 /**/.phpunit.cache/
 /**/.phpunit.result.cache
 *.log
 .env
+examples/handmade-php/config/site-connect.php
 .vscode/
