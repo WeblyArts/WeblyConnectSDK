@@ -1,0 +1,170 @@
+name: Widget release
+
+# Enterprise widget delivery for handmade sites:
+# 1. Detect js/ asset changes on main (or manual dispatch)
+# 2. Pre-flight syntax + file checks
+# 3. Bump semver widget-v* tag (immutable jsDelivr pin)
+# 4. Smoke-test jsDelivr
+# 5. GitHub Release + pin docs in this repo
+# 6. Optional PR to WeblySuite public docs (WEBLY_SUITE_PAT secret)
+#
+# WordPress plugins are NOT updated here: they bundle their own local JS (WP.org Guideline 8).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'js/src/**'
+      - 'js/css/**'
+      - 'js/vendor/**'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semver bump for the new widget tag
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      force:
+        description: Tag even if js/ is unchanged since the last widget-v* tag
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: widget-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+
+      - name: Plan next widget tag
+        id: plan
+        env:
+          BUMP: ${{ github.event_name == 'workflow_dispatch' && inputs.bump || 'patch' }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
+        run: |
+          chmod +x .github/scripts/widget-release-plan.sh
+          .github/scripts/widget-release-plan.sh "${BUMP}" "${FORCE}"
+
+      - name: Pre-flight widget assets
+        if: steps.plan.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          for f in js/src/*.js js/vendor/*.js; do
+            node --check "$f"
+          done
+          for f in js/css/widget.css js/vendor/fetch-event-source.js js/src/stream-kit.js js/src/widget.js; do
+            test -s "$f"
+          done
+
+      - name: Create and push tag
+        if: steps.plan.outputs.skip != 'true'
+        id: tag
+        run: |
+          set -euo pipefail
+          NEW_TAG="${{ steps.plan.outputs.new_tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${NEW_TAG}" -m "WeblyConnect handmade widget ${NEW_TAG}"
+          git push origin "${NEW_TAG}"
+          echo "tag=${NEW_TAG}" >> "${GITHUB_OUTPUT}"
+
+      - name: Smoke-test jsDelivr
+        if: steps.plan.outputs.skip != 'true'
+        run: |
+          chmod +x .github/scripts/widget-smoke-jsdelivr.sh
+          .github/scripts/widget-smoke-jsdelivr.sh "${{ steps.plan.outputs.new_tag }}"
+
+      - name: Build release notes
+        if: steps.plan.outputs.skip != 'true'
+        id: notes
+        env:
+          NEW_TAG: ${{ steps.plan.outputs.new_tag }}
+          PREV_TAG: ${{ steps.plan.outputs.prev_tag }}
+        run: |
+          set -euo pipefail
+          BASE="https://cdn.jsdelivr.net/gh/${GITHUB_REPOSITORY}@${NEW_TAG}"
+          {
+            echo "## CDN embed (pin exactly \`${NEW_TAG}\`)"
+            echo ""
+            echo "\`\`\`html"
+            echo "<link rel=\"stylesheet\" href=\"${BASE}/js/css/widget.css\">"
+            echo "<script src=\"${BASE}/js/vendor/fetch-event-source.js\"></script>"
+            echo "<script src=\"${BASE}/js/src/stream-kit.js\"></script>"
+            echo "<script src=\"${BASE}/js/src/widget.js\"></script>"
+            echo "\`\`\`"
+            echo ""
+            if [[ -n "${PREV_TAG}" ]]; then
+              echo "### Changes since \`${PREV_TAG}\`"
+              echo '```'
+              git log "${PREV_TAG}..HEAD" --oneline -- js/src js/css js/vendor
+              echo '```'
+            fi
+          } > release-notes.md
+
+      - name: Publish GitHub Release
+        if: steps.plan.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.plan.outputs.new_tag }}" \
+            --title "WeblyConnect widget ${{ steps.plan.outputs.new_tag }}" \
+            --notes-file release-notes.md
+
+      - name: Pin docs to new tag
+        if: steps.plan.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          chmod +x .github/scripts/widget-update-doc-urls.sh
+          .github/scripts/widget-update-doc-urls.sh \
+            "${{ steps.plan.outputs.new_tag }}" \
+            "${{ steps.plan.outputs.prev_tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs js/WIDGET_VERSION
+          if git diff --staged --quiet; then
+            echo "No doc changes to commit"
+            exit 0
+          fi
+          git commit -m "docs(widget): pin CDN URLs to ${{ steps.plan.outputs.new_tag }}"
+          git push
+
+      - name: Sync WeblySuite public docs (optional)
+        if: steps.plan.outputs.skip != 'true'
+        env:
+          WEBLY_SUITE_PAT: ${{ secrets.WEBLY_SUITE_PAT }}
+        run: |
+          chmod +x .github/scripts/widget-sync-suite-docs.sh
+          .github/scripts/widget-sync-suite-docs.sh \
+            "${{ steps.plan.outputs.new_tag }}" \
+            "${{ steps.plan.outputs.prev_tag }}"
+
+      - name: Close prior widget release failure issues
+        if: steps.plan.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue list --label widget-release --state open --json number --jq '.[].number' | while read -r n; do
+            gh issue close "$n" --comment "Resolved by successful release ${{ steps.plan.outputs.new_tag }}."
+          done || true
+
+      - name: Summarize skipped run
+        if: steps.plan.outputs.skip == 'true'
+        run: echo "Skipped: ${{ steps.plan.outputs.skip_reason }}"

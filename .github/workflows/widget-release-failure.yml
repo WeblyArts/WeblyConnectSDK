@@ -1,0 +1,63 @@
+name: Widget release failure alert
+
+on:
+  workflow_run:
+    workflows:
+      - Widget release
+      - Widget release check
+    types:
+      - completed
+
+permissions:
+  issues: write
+
+jobs:
+  alert:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const title = `Widget CDN release failed (${run.name} #${run.run_number})`;
+            const body = [
+              `Workflow **${run.name}** failed.`,
+              '',
+              `- Run: ${run.html_url}`,
+              `- Commit: ${run.head_sha}`,
+              `- Branch/ref: ${run.head_branch}`,
+              '',
+              'Check logs, fix js/ or jsDelivr, then re-run the workflow or push a fix to main.',
+              '',
+              'Manual fallback:',
+              '```bash',
+              'git tag widget-vX.Y.Z',
+              'git push origin widget-vX.Y.Z',
+              '```',
+            ].join('\n');
+
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'widget-release',
+            });
+
+            if (existing.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                body: `Another failure: ${run.html_url}`,
+              });
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['widget-release', 'automated'],
+            });

@@ -58,26 +58,45 @@ would serve stale or unpredictable content. This tag is independent of whatever
 `connect-sdk-core` git ref a site's `composer.json` pins; bumping one does not
 require bumping the other.
 
-### Cutting a new widget release
+### Automated delivery (default)
 
-The JS bundle has no build step, so a release is just a tag on the commit you want
-to publish:
+You normally **do not tag by hand**. When a commit lands on `main` that changes
+`js/src/`, `js/css/`, or `js/vendor/`, the
+[`.github/workflows/widget-release.yml`](../.github/workflows/widget-release.yml)
+pipeline runs automatically:
+
+1. Computes the next semver tag (`widget-v0.1.0` → `widget-v0.1.1`, patch bump).
+2. Pre-flights the JS/CSS assets (`node --check`, required files present).
+3. Creates and pushes the immutable `widget-v*` git tag.
+4. Smoke-tests all four jsDelivr URLs until HTTP 200.
+5. Publishes a GitHub Release with embed snippets and changelog.
+6. Commits doc URL pins in this repo (`docs/WIDGET.md`, `js/WIDGET_VERSION`).
+7. Optionally opens a PR on `WeblyArts/WeblySuite` (`dev`) when the
+   `WEBLY_SUITE_PAT` repository secret is configured.
+
+The canonical released version lives in [`js/WIDGET_VERSION`](../js/WIDGET_VERSION).
+
+If the pipeline fails, [`.github/workflows/widget-release-failure.yml`](../.github/workflows/widget-release-failure.yml)
+opens (or updates) a GitHub issue labeled `widget-release`.
+
+Pushing any `widget-v*` tag (manual or automated) also runs
+[`.github/workflows/widget-release-check.yml`](../.github/workflows/widget-release-check.yml)
+as an independent verification gate.
+
+### Manual release (fallback)
+
+Use GitHub Actions → **Widget release** → **Run workflow** when you need a
+**minor** or **major** bump, or to force a tag when `js/` did not change.
+
+CLI fallback:
 
 ```bash
-git tag widget-v0.1.0
-git push origin widget-v0.1.0
+git tag widget-v0.1.1
+git push origin widget-v0.1.1
 ```
 
-jsDelivr picks up new tags within minutes (no purge needed for a tag used for the
-first time, since each tag is a distinct, immutable URL). Bump the tag
-(`widget-v0.1.1`, …) for any change to `js/`; do not reuse a tag.
-
-Pushing a `widget-v*` tag runs
-[`.github/workflows/widget-release-check.yml`](../.github/workflows/widget-release-check.yml):
-it syntax-checks the JS files, confirms none are missing or empty, then polls the
-four jsDelivr URLs above until they return `200`. It does not publish anything
-itself (there is nothing to build), it only catches a bad tag or a jsDelivr outage
-before you update the embed snippet on a live site.
+Never reuse or force-push an existing `widget-v*` tag: jsDelivr keys on the
+immutable tag string.
 
 ## 1. Site init (PHP only)
 
