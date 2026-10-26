@@ -53,7 +53,11 @@ final class AgentHubClient
         $response = $this->http->request($method, $url, $this->authHeaders(), $encodedBody, $timeoutSec);
 
         if (! $response->transportOk) {
-            throw new AgentHubException('AgentHub request failed at the transport level.');
+            $detail = trim($response->transportError);
+            $message = $detail !== ''
+                ? 'Unable to reach the agent service: ' . $detail
+                : 'Unable to reach the agent service.';
+            throw new AgentHubException($message);
         }
 
         $data = $response->jsonBody();

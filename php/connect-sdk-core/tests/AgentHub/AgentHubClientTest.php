@@ -53,12 +53,17 @@ final class AgentHubClientTest extends TestCase
     public function testTransportFailureThrowsAgentHubException(): void
     {
         $http = new FakeHttpClient();
-        $http->willReturn(new HttpResponse(0, '', false));
+        $http->willReturn(new HttpResponse(0, '', false, 'SSL: certificate subject mismatch'));
 
         $client = $this->makeClient($http);
 
-        $this->expectException(AgentHubException::class);
-        $client->listModels();
+        try {
+            $client->listModels();
+            self::fail('Expected AgentHubException.');
+        } catch (AgentHubException $e) {
+            self::assertSame(0, $e->getStatusCode());
+            self::assertStringContainsString('SSL: certificate subject mismatch', $e->getMessage());
+        }
     }
 
     public function testMissingTokenThrowsBeforeAnyRequest(): void

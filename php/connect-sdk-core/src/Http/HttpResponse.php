@@ -12,7 +12,8 @@ final class HttpResponse
     public function __construct(
         public readonly int $statusCode,
         public readonly string $rawBody,
-        public readonly bool $transportOk
+        public readonly bool $transportOk,
+        public readonly string $transportError = ''
     ) {
     }
 

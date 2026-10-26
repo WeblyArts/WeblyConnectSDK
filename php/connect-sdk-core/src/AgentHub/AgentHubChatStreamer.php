@@ -55,7 +55,6 @@ final class AgentHubChatStreamer
             return;
         }
 
-        $url = rtrim($this->baseUrl, '/') . '/agents/' . rawurlencode($agentId) . '/chat';
         $body = (string) json_encode(array_merge(
             [
                 'message' => $message,
@@ -66,6 +65,57 @@ final class AgentHubChatStreamer
             $extra
         ));
 
+        $this->pipe($this->agentUrl($agentId, 'chat'), $token, $body, $onEvent, $onFirstByte);
+    }
+
+    /**
+     * Resumes a graph paused by `interrupt()` (SSE `tool_request`) with the page outcome.
+     *
+     * @param array<string, mixed>|string $toolResult
+     * @param callable(string, array<string, mixed>): void $onEvent
+     */
+    public function resume(
+        string $agentId,
+        string $sessionId,
+        array|string $toolResult,
+        callable $onEvent
+    ): void {
+        $token = $this->auth->getBearerToken();
+        if ($this->baseUrl === '' || $token === '' || $agentId === '' || $sessionId === '') {
+            $onEvent('error', [
+                'message' => 'AgentHub is not configured. Check the tenant token and agent ID.',
+                'retryable' => false,
+            ]);
+            $onEvent('done', []);
+
+            return;
+        }
+
+        $body = (string) json_encode([
+            'session_id' => $sessionId,
+            'tool_result' => $toolResult,
+        ]);
+
+        $this->pipe($this->agentUrl($agentId, 'resume'), $token, $body, $onEvent, null, 1);
+    }
+
+    private function agentUrl(string $agentId, string $action): string
+    {
+        return rtrim($this->baseUrl, '/') . '/agents/' . rawurlencode($agentId) . '/' . $action;
+    }
+
+    /**
+     * @param callable(string, array<string, mixed>): void $onEvent
+     * @param (callable(): void)|null $onFirstByte
+     */
+    private function pipe(
+        string $url,
+        string $token,
+        string $body,
+        callable $onEvent,
+        ?callable $onFirstByte,
+        ?int $maxAttempts = null
+    ): void {
         $headers = [
             'Content-Type' => 'application/json',
             'Accept' => 'text/event-stream',
@@ -79,7 +129,8 @@ final class AgentHubChatStreamer
         $buffer = '';
         $ok = false;
 
-        for ($attempt = 0; $attempt < $this->maxAttempts; $attempt++) {
+        $attempts = $maxAttempts ?? $this->maxAttempts;
+        for ($attempt = 0; $attempt < $attempts; $attempt++) {
             $bytesSeen = false;
             $buffer = '';
 

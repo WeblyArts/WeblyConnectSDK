@@ -47,10 +47,17 @@ final class CurlHttpClient implements HttpClientInterface
 
         $raw = curl_exec($ch);
         $statusCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $transportOk = $raw !== false;
+        $errno = curl_errno($ch);
+        $error = curl_error($ch);
+        $transportOk = $raw !== false && $errno === 0;
         curl_close($ch);
 
-        return new HttpResponse($statusCode, $transportOk ? (string) $raw : '', $transportOk);
+        return new HttpResponse(
+            $statusCode,
+            $transportOk ? (string) $raw : '',
+            $transportOk,
+            $error
+        );
     }
 
     public function streamPost(

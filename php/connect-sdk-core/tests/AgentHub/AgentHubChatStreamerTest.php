@@ -106,4 +106,43 @@ final class AgentHubChatStreamerTest extends TestCase
         self::assertContains('error', $eventNames);
         self::assertTrue($events[array_search('error', $eventNames, true)][1]['retryable']);
     }
+
+    public function testResumePostsToolResultOnceAndDecodesEvents(): void
+    {
+        $http = new FakeHttpClient();
+        $http->willStream([
+            'data: ' . json_encode(['event' => 'react_answer', 'payload' => ['content' => 'Done']]) . "\n\n",
+        ], false);
+
+        $streamer = new AgentHubChatStreamer($http, $this->makeAuth(), 'https://hub.example.test');
+
+        $events = [];
+        $streamer->resume('agent-1', 'sess-1', ['ok' => true], function (string $event, array $payload) use (&$events): void {
+            $events[] = [$event, $payload];
+        });
+
+        self::assertCount(1, $http->streamCalls);
+        self::assertSame('https://hub.example.test/agents/agent-1/resume', $http->streamCalls[0]['url']);
+        self::assertSame(
+            ['session_id' => 'sess-1', 'tool_result' => ['ok' => true]],
+            json_decode($http->streamCalls[0]['body'], true)
+        );
+        $eventNames = array_column($events, 0);
+        self::assertContains('react_answer', $eventNames);
+        self::assertSame('done', end($events)[0]);
+    }
+
+    public function testResumeWithoutSessionDoesNotCallHttp(): void
+    {
+        $http = new FakeHttpClient();
+        $streamer = new AgentHubChatStreamer($http, $this->makeAuth(), 'https://hub.example.test');
+
+        $events = [];
+        $streamer->resume('agent-1', '', ['ok' => true], function (string $event, array $payload) use (&$events): void {
+            $events[] = [$event, $payload];
+        });
+
+        self::assertSame([], $http->streamCalls);
+        self::assertSame('error', $events[0][0]);
+    }
 }

@@ -21,6 +21,9 @@ final class FakeHttpClient implements HttpClientInterface
 
     private bool $streamOk = true;
 
+    /** @var list<array{url: string, body: string}> */
+    public array $streamCalls = [];
+
     public function willReturn(HttpResponse $response): void
     {
         $this->nextResponse = $response;
@@ -55,6 +58,7 @@ final class FakeHttpClient implements HttpClientInterface
         int $connectTimeoutSec = 10,
         int $timeoutSec = 300
     ): bool {
+        $this->streamCalls[] = ['url' => $url, 'body' => $body];
         foreach ($this->streamChunks as $chunk) {
             $onChunk($chunk);
         }
